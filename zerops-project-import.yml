@@ -1,0 +1,41 @@
+#yamlPreprocessor=on
+project:
+  name: recipe-gitea
+  tags:
+    - recipe
+
+services:
+  - hostname: db
+    type: postgresql@17
+    mode: NON_HA
+    priority: 100
+
+  - hostname: storage
+    type: sharedstorage
+    mode: NON_HA
+    priority: 100
+
+  - hostname: objectstorage
+    type: object-storage
+    objectStorageSize: 10
+    priority: 100
+
+  - hostname: gitea
+    type: alpine@3.21
+    enableSubdomainAccess: true
+    buildFromGit: https://github.com/jansaidl/recipe-gitea
+    envSecrets:
+      GITEA__security__INTERNAL_TOKEN: <@generateRandomString(<24>)>
+      GITEA__security__SECRET_KEY: <@generateRandomString(<24>)>
+      GITEA__server__LFS_JWT_SECRET: <@generateRandomString(<24>)>
+    priority: 90
+    mount:
+      - storage
+
+  - hostname: gitearunner
+    type: alpine@3.21
+    buildFromGit: https://github.com/jansaidl/recipe-gitea
+    zeropsYaml: gitearunner
+    envSecrets:
+      TOKEN: ${gitea_RUNNER_TOKEN}
+    priority: 90

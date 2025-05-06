@@ -1,0 +1,104 @@
+zerops:
+  - setup: gitea
+    deploy:
+      readinessCheck:
+        httpGet:
+          port: 3000
+          path: /
+          host: 127.0.0.1
+          scheme: http
+    run:
+      base: alpine@3.21
+      healthCheck:
+        httpGet:
+          host: localhost
+          port: 3000
+          path: /
+      envVariables:
+        GITEA_APP_NAME: "Test application"
+        GITEA_WORK_DIR: "/var/www"
+        GITEA_RUN_MODE: "prod"
+        GITEA_FORCE_PRIVATE: "true"
+
+        GITEA__security__INSTALL_LOCK: "true"
+        GITEA__security__PASSWORD_HASH_ALGO: pbkdf2
+
+        GITEA__repository__ROOT: "/var/www/data"
+
+        GITEA__database__DB_TYPE: "postgres"
+        GITEA__database__HOST: "${db_hostname}:${db_port}"
+        GITEA__database__NAME: "${db_dbName}"
+        GITEA__database__USER: "${db_user}"
+        GITEA__database__SCHEMA: ""
+        GITEA__database__PASSWD: "${db_password}"
+        GITEA__database__SSL_MODE: "disable"
+        GITEA__database__PATH: ""
+        GITEA__database__LOG_SQL: "false"
+
+        GITEA__lfs__PATH: "/var/www/data/lfs"
+
+        GITEA__mailer__ENABLED: "false"
+
+        GITEA__service__REGISTER_EMAIL_CONFIRM: "false"
+        GITEA__service__ENABLE_NOTIFY_MAIL: "false"
+        GITEA__service__DISABLE_REGISTRATION: "false"
+        GITEA__service__ALLOW_ONLY_EXTERNAL_REGISTRATION: "false"
+        GITEA__service__ENABLE_CAPTCHA: "false"
+        GITEA__service__REQUIRE_SIGNIN_VIEW: "false"
+        GITEA__service__DEFAULT_KEEP_EMAIL_PRIVATE: "false"
+        GITEA__service__DEFAULT_ALLOW_CREATE_ORGANIZATION: "true"
+        GITEA__service__DEFAULT_ENABLE_TIMETRACKING: "true"
+        GITEA__service__NO_REPLY_ADDRESS: "noreply.localhost"
+
+        GITEA__openid__ENABLE_OPENID_SIGNIN: "false"
+        GITEA__openid__ENABLE_OPENID_SIGNUP: "false"
+
+        GITEA__cron_update_checker__ENABLED: "false"
+
+        GITEA__session__PROVIDER: "file"
+
+        GITEA__log__MODE: "console"
+        GITEA__log__LEVEL: "info"
+        GITEA__log__ROOT_PATH: "/var/www/log"
+
+        GITEA__server__LOCAL_ROOT_URL: "http://localhost:3000"
+        GITEA__server__HTTP_PORT: "3000"
+        GITEA__server__APP_DATA_PATH: "/var/www/data"
+        GITEA__server__SSH_DOMAIN: "gitea-${zeropsSubdomainHost}-2222.prg1.zerops.app"
+        GITEA__server__SSH_PORT: "2222"
+        GITEA__server__ROOT_URL: "https://gitea-${zeropsSubdomainHost}-3000.prg1.zerops.app/"
+        GITEA__server__DOMAIN: "gitea-${zeropsSubdomainHost}-3000.prg1.zerops.app"
+        GITEA__server__LFS_START_SERVER: "false"
+        GITEA__server__START_SSH_SERVER: "true"
+        GITEA__server__OFFLINE_MODE: "true"
+        GITEA__server__DISABLE_SSH: "false"
+
+        GITEA__storage__STORAGE_TYPE: "minio"
+        GITEA__storage__MINIO_ENDPOINT: "${objectstorage_apiHost}"
+        GITEA__storage__MINIO_ACCESS_KEY_ID: "${objectstorage_accessKeyId}"
+        GITEA__storage__MINIO_SECRET_ACCESS_KEY: "${objectstorage_secretAccessKey}"
+        GITEA__storage__MINIO_IAM_ENDPOINT: ""
+        GITEA__storage__MINIO_BUCKET: "${objectstorage_bucketName}"
+        GITEA__storage__MINIO_LOCATION: "us-east-1"
+        GITEA__storage__MINIO_USE_SSL: "true"
+        GITEA__storage__MINIO_INSECURE_SKIP_VERIFY: "false"
+        GITEA__storage__SERVE_DIRECT: "true"
+        GITEA__storage__MINIO_BUCKET_LOOKUP_TYPE: "path"
+      prepareCommands:
+        - sudo apk add gitea
+      ports:
+        - port: 3000
+          httpSupport: true
+        - port: 2222
+          httpSupport: false
+      envReplace:
+        target: gitea.ini
+        delimiter: '%'
+      startCommands:
+        - name: gitea
+          initCommands:
+            - ln -s /mnt/storage /var/www/data
+            - mkdir -p /var/www/data/lfs
+            - mkdir -p /var/www/log
+            - mkdir -p /var/www/custom
+          command: /usr/bin/gitea web  --config /var/www/gitea.ini --pid /var/www/gitea.pid --port 3000
